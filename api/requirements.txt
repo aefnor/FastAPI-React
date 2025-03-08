@@ -1,4 +1,11 @@
-fastapi==0.68.0
-uvicorn==0.15.0
-redis
+fastapi
 celery
+pypdf
+langchain
+aiofiles
+uvicorn
+python-multipart
+langchain-community
+sentence-transformers
+chromadb
+openai
