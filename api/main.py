@@ -1,10 +1,11 @@
 from asyncio import create_task
 from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from tasks import process_uploaded_file
+from tasks import process_uploaded_file, converse_task
 import asyncio
 import os
 import aiofiles
+from pydantic import BaseModel
 
 app = FastAPI()
 
@@ -47,6 +48,32 @@ async def create_upload_file(file: UploadFile = File(...)):
         "content_type": file.content_type,
         "task_id": task.id,
     }
+
+
+class QueryModel(BaseModel):
+    query: str
+
+
+@app.post("/converse")
+async def converse(query_model: QueryModel):
+    query = query_model.query
+    # Load the question-answering chain
+    query_hash = str(hash(query))
+    task_id = query_hash
+    converse_task.apply_async(args=[query], task_id=task_id)
+    task = converse_task.AsyncResult(task_id)
+    while not task.ready():
+        await asyncio.sleep(1)
+    return {"task_id": task_id, "response": task.result}
+
+
+# create route for sse when chatting
+@app.get("/chat/{task_id}")
+async def chat(task_id: str):
+    task = converse_task.AsyncResult(task_id)
+    while not task.ready():
+        await asyncio.sleep(1)
+    return {"task_id": task_id, "response": task.result}
 
 
 # status for task id route

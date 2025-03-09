@@ -137,9 +137,9 @@ interface UploadedFile {
   completed: boolean;
 }
 
-const instance = axios.create({
+export const instance = axios.create({
   baseURL: "http://127.0.0.1:8000",
-  timeout: 1000,
+  timeout: 1000000000,
 });
 
 const fetchTaskStatus = async (taskId: string) => {

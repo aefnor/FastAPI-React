@@ -10,6 +10,12 @@ from langchain.chains.question_answering import load_qa_chain
 
 app = Celery("tasks")
 app.config_from_object("celery_config")
+local_llm = ChatOpenAI(
+    openai_api_base="http://localhost:1234/v1",  # LM Studio's API
+    openai_api_key="lm-studio",  # Placeholder (not used)
+    model_name="lmstudio-community/QwQ-32B-GGUF",  # Change this to match the model running in LM Studio
+    temperature=0.7,
+)
 
 
 @app.task(queue="default")
@@ -55,12 +61,6 @@ def chunk_text(pdf_text, chunk_size=500, chunk_overlap=100):
     retrieved_texts = "\n".join([doc.page_content for doc in retrieved_docs])
     print(retrieved_texts)
     # LM Studio local API setup
-    local_llm = ChatOpenAI(
-        openai_api_base="http://localhost:1234/v1",  # LM Studio's API
-        openai_api_key="lm-studio",  # Placeholder (not used)
-        model_name="lmstudio-community/QwQ-32B-GGUF",  # Change this to match the model running in LM Studio
-        temperature=0.7,
-    )
 
     # Load QA chain for combining documents
     combine_docs_chain = load_qa_chain(local_llm, chain_type="stuff")
@@ -74,3 +74,10 @@ def chunk_text(pdf_text, chunk_size=500, chunk_overlap=100):
     response = rag_chain.run(query)
 
     print(response)
+
+
+@app.task(queue="default")
+def converse_task(query):
+    qa_chain = load_qa_chain(local_llm, chain_type="stuff")
+    response = qa_chain.run({"question": query, "input_documents": []})
+    return response
